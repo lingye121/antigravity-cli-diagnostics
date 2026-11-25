@@ -3,10 +3,8 @@ setlocal EnableExtensions DisableDelayedExpansion
 chcp 65001 >nul
 title Antigravity CLI 1.5.16 Eligibility Patcher (One-Click Install)
 color 0B
-
 pushd "%~dp0" >nul 2>&1
 
-:: 自动定位官方安装路径
 set "TARGET=%USERPROFILE%\.gemini\bin\agy.exe"
 
 echo ===================================================
@@ -15,9 +13,7 @@ echo ===================================================
 echo.
 
 if not exist "%TARGET%" (
-    echo [ERROR] 找不到 agy.exe。
-    echo 请确保已安装 Antigravity CLI，且路径在：%TARGET%
-    echo.
+    echo [ERROR] 找不到 agy.exe，请确保已安装 Antigravity CLI。
     pause
     exit /b 1
 )
@@ -41,15 +37,14 @@ echo.
     "        Write-Host '[INFO] 您的 agy.exe 已经是修补版，无需重复安装！' -ForegroundColor Green;" ^
     "        $result = 0; exit $result;" ^
     "    };" ^
-    "    if ($actualHash -ne $expectedHash) { throw '文件哈希不匹配，这不是官方 1.5.16 原版文件，无法安装。' };" ^
+    "    if ($actualHash -ne $expectedHash) { throw '文件哈希不匹配，这不是官方 1.5.16 原版，无法安装。' };" ^
     "    Write-Host '[1/4] 原版校验通过。正在关闭后台进程...';" ^
-    "    Stop-Process -Name agy -ErrorAction SilentlyContinue;" ^
-    "    Start-Sleep -Milliseconds 500;" ^
+    "    Stop-Process -Name agy -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500;" ^
     "    if (-not (Test-Path -LiteralPath $bak)) {" ^
-    "        Write-Host '[2/4] 正在备份原版至 agy.exe.bak...';" ^
+    "        Write-Host '[2/4] 备份原版至 agy.exe.bak...';" ^
     "        Copy-Item -LiteralPath $src -Destination $bak -Force;" ^
     "    } else {" ^
-    "        Write-Host '[2/4] 发现旧的 agy.exe.bak 备份，跳过备份。';" ^
+    "        Write-Host '[2/4] 发现旧备份，跳过备份。';" ^
     "    };" ^
     "    Write-Host '[3/4] 正在生成补丁并校验完整性...';" ^
     "    $tmp = Join-Path (Split-Path $src) ('.agy-patched-' + [Guid]::NewGuid().ToString('N') + '.tmp');" ^
@@ -62,10 +57,10 @@ echo.
     "    $outStream.Flush($true); $outStream.Position = 0;" ^
     "    $outHash = [BitConverter]::ToString($sha.ComputeHash($outStream)).Replace('-', '');" ^
     "    if ($outStream.Length -ne $srcStream.Length -or $outHash -ne $expectedOutHash) { throw '补丁校验失败。' };" ^
-    "    $outStream.Dispose(); $outStream = $null;" ^
-    "    $srcStream.Dispose(); $srcStream = $null;" ^
-    "    Write-Host '[4/4] 正在覆盖安装...';" ^
-    "    [System.IO.File]::Move($tmp, $src);" ^
+    "    $outStream.Dispose(); $outStream = $null; $srcStream.Dispose(); $srcStream = $null;" ^
+    "    Write-Host '[4/4] 正在覆盖原文件...';" ^
+    "    $rollback = $src + '.rollback-' + [Guid]::NewGuid().ToString('N') + '.bak';" ^
+    "    [System.IO.File]::Replace($tmp, $src, $rollback);" ^
     "    $ownTemp = $false;" ^
     "    Write-Host '✅ 安装成功！现在您可以直接使用 agy 命令了。' -ForegroundColor Green;" ^
     "    $result = 0;" ^
@@ -75,21 +70,13 @@ echo.
     "    if ($null -ne $outStream) { $outStream.Dispose() };" ^
     "    if ($null -ne $srcStream) { $srcStream.Dispose() };" ^
     "    if ($null -ne $sha) { $sha.Dispose() };" ^
-    "    if ($ownTemp -and $null -ne $tmp) {" ^
-    "        try { Remove-Item -LiteralPath $tmp -Force -ErrorAction Stop } catch {}" ^
-    "    };" ^
+    "    if ($ownTemp -and $null -ne $tmp) { try { Remove-Item -LiteralPath $tmp -Force -ErrorAction Stop } catch {} };" ^
     "};" ^
     "exit $result"
 
 set "RESULT=%ERRORLEVEL%"
 popd
 echo.
-if not "%RESULT%"=="0" (
-    echo [失败] 安装未完成。原文件已被保护，未做任何修改。
-) else (
-    echo ===================================================
-    echo [完成] 你现在可以在命令行输入 agy 来测试效果了。
-    echo ===================================================
-)
+if not "%RESULT%"=="0" ( echo [失败] 安装未完成，请检查原文件及备份状态。 ) else ( echo [完成] 你现在可以在命令行输入 agy 来测试效果了。 )
 pause
 exit /b %RESULT%
